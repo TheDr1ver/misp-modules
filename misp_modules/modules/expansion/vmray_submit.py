@@ -3,10 +3,12 @@
 '''
 Submit sample to  VMRay.
 
-Submit a sample to VMRay
+Requires "vmray_rest_api"
 
-TODO:
- # Deal with archive submissions
+The expansion module vmray_submit and import module vmray_import are a two step
+process to import data from VMRay.
+You can automate this by setting the PyMISP example script 'vmray_automation'
+as a cron job
 
 '''
 
@@ -40,12 +42,12 @@ def handler(q=False):
         data = request.get("data")
         if 'malware-sample' in request:
             # malicious samples are encrypted with zip (password infected) and then base64 encoded
-            sample_filename = request.get("malware-sample").split("|",1)[0]
+            sample_filename = request.get("malware-sample").split("|", 1)[0]
             data = base64.b64decode(data)
             fl = io.BytesIO(data)
             zf = zipfile.ZipFile(fl)
             sample_hashname = zf.namelist()[0]
-            data = zf.read(sample_hashname,b"infected")
+            data = zf.read(sample_hashname, b"infected")
             zf.close()
         elif 'attachment' in request:
             # All attachments get base64 encoded
@@ -55,7 +57,7 @@ def handler(q=False):
         else:
             misperrors['error'] = "No malware sample or attachment supplied"
             return misperrors
-    except:
+    except Exception:
         misperrors['error'] = "Unable to process submited sample data"
         return misperrors
 
@@ -102,7 +104,7 @@ def handler(q=False):
                 return misperrors
             else:
                 return vmrayProcess(vmraydata)
-        except:
+        except Exception:
             misperrors['error'] = "Problem when calling API."
             return misperrors
     else:
@@ -129,13 +131,13 @@ def vmrayProcess(vmraydata):
             # Result received?
             if submissions and jobs:
                 r = {'results': []}
-                r["results"].append({"types": "md5", "values": submissions["submission_sample_md5"]})
-                r["results"].append({"types": "sha1", "values": submissions["submission_sample_sha1"]})
-                r["results"].append({"types": "sha256", "values": submissions["submission_sample_sha256"]})
-                r["results"].append({"types": "text", "values": "VMRay Sample ID: %s" % submissions["submission_sample_id"]})
-                r["results"].append({"types": "text", "values": "VMRay Submission ID: %s" % submissions["submission_id"]})
-                r["results"].append({"types": "text", "values": "VMRay Submission Sample IP: %s" % submissions["submission_ip_ip"]})
-                r["results"].append({"types": "link", "values": submissions["submission_webif_url"]})
+                r['results'].append({'types': 'md5', 'values': submissions['submission_sample_md5']})
+                r['results'].append({'types': 'sha1', 'values': submissions['submission_sample_sha1']})
+                r['results'].append({'types': 'sha256', 'values': submissions['submission_sample_sha256']})
+                r['results'].append({'types': 'text', 'values': 'VMRay Sample ID: %s' % submissions['submission_sample_id'], 'tags': 'workflow:state="incomplete"'})
+                r['results'].append({'types': 'text', 'values': 'VMRay Submission ID: %s' % submissions['submission_id']})
+                r['results'].append({'types': 'text', 'values': 'VMRay Submission Sample IP: %s' % submissions['submission_ip_ip']})
+                r['results'].append({'types': 'link', 'values': submissions['submission_webif_url']})
 
                 # Include data from different jobs
                 if include_vmrayjobids:
@@ -148,7 +150,7 @@ def vmrayProcess(vmraydata):
             else:
                 misperrors['error'] = "No valid results returned."
                 return misperrors
-        except:
+        except Exception:
             misperrors['error'] = "No valid submission data returned."
             return misperrors
     else:
